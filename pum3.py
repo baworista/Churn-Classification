@@ -12,6 +12,8 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import roc_auc_score, confusion_matrix, classification_report
 from sklearn.cluster import KMeans
 
+
+#Hello world!
 # Load the data
 data = pd.read_csv('datasets/customers_churn.csv')
 
