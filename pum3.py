@@ -20,15 +20,16 @@ print(data.head())
 print(data.info())
 print(data.describe())
 
-# Correlation matrix
+# Correlation matrix with only numeric columns
+numeric_data = data.select_dtypes(include=[np.number])
 plt.figure(figsize=(12, 10))
-sns.heatmap(data.corr(), annot=True, fmt='.2f')
+sns.heatmap(numeric_data.corr(), annot=True, fmt='.2f')
 plt.title('Correlation Matrix')
 plt.show()
 
 # Split data into features and target
-X = data.drop(columns=['Churn?'])
-y = data['Churn?']
+X = data.drop(columns=['churn', 'phone'])  # Drop 'phone' column here
+y = data['churn']
 
 # Define numerical and categorical columns
 num_features = X.select_dtypes(include=['int64', 'float64']).columns
@@ -63,12 +64,12 @@ roc_auc_baseline = roc_auc_score(y_test, y_pred_proba)
 print(f'Baseline ROC AUC: {roc_auc_baseline:.2f}')
 
 # Feature Engineering: Create new features
-data['Total_mins'] = data['Day Mins'] + data['Eve Mins'] + data['Night Mins'] + data['Intl Mins']
-data['Total_charge'] = data['Day Charge'] + data['Eve Charge'] + data['Night Charge'] + data['Intl Charge']
+data['total_mins'] = data['day_mins'] + data['eve_mins'] + data['night_mins'] + data['intl_mins']
+data['total_charge'] = data['day_charge'] + data['eve_charge'] + data['night_charge'] + data['intl_charge']
 
 # Update features
-X = data.drop(columns=['Churn?', 'Phone'])
-y = data['Churn?']
+X = data.drop(columns=['churn', 'phone'])  # Ensure 'phone' is dropped here as well
+y = data['churn']
 
 # Model 1.0: Including new features
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
@@ -88,8 +89,8 @@ kmeans = KMeans(n_clusters=3, random_state=42)
 data['Cluster'] = kmeans.fit_predict(data[num_features])
 
 # Update features to include clusters
-X = data.drop(columns=['Churn?', 'Phone'])
-y = data['Churn?']
+X = data.drop(columns=['churn', 'phone'])  # Ensure 'phone' is dropped here as well
+y = data['churn']
 
 # Model 2.0: Including clusters
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
@@ -105,9 +106,9 @@ roc_auc_model_2 = roc_auc_score(y_test, y_pred_proba)
 print(f'Model 2.0 ROC AUC: {roc_auc_model_2:.2f}')
 
 # Model 3.0: Feature selection and different algorithms
-# Let's drop 'Area Code' and 'State' for this model
-X = data.drop(columns=['Churn?', 'Phone', 'Area Code', 'State'])
-y = data['Churn?']
+# Let's drop 'area_code' and 'state' for this model
+X = data.drop(columns=['churn', 'phone', 'area_code', 'state'])
+y = data['churn']
 
 # Model 3.0: Using Logistic Regression and RandomForest
 model_3 = Pipeline(steps=[
@@ -165,4 +166,3 @@ tn, fp, fn, tp = cm.ravel()
 
 profit = (tp * net_gain_per_customer) - (fp * net_loss_per_customer)
 print(f'Optimized Model Profit: {profit}')
-
