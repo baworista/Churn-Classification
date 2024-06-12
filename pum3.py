@@ -1,6 +1,5 @@
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler, OneHotEncoder
@@ -9,11 +8,11 @@ from sklearn.pipeline import Pipeline
 from sklearn.impute import SimpleImputer
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import roc_auc_score, confusion_matrix, classification_report
+from sklearn.metrics import roc_auc_score, confusion_matrix
 from sklearn.cluster import KMeans
+import matplotlib.pyplot as plt
+from sklearn.metrics import roc_curve, auc
 
-
-#Hello world!
 # Load the data
 data = pd.read_csv('datasets/customers_churn.csv')
 
@@ -87,7 +86,7 @@ roc_auc_model_1 = roc_auc_score(y_test, y_pred_proba)
 print(f'Model 1.0 ROC AUC: {roc_auc_model_1:.2f}')
 
 # Model 2.0: Segmentation using KMeans clustering
-kmeans = KMeans(n_clusters=3, random_state=42)
+kmeans = KMeans(n_clusters=2, random_state=42)
 data['Cluster'] = kmeans.fit_predict(data[num_features])
 
 # Update features to include clusters
@@ -115,7 +114,7 @@ y = data['churn']
 # Model 3.0: Using Logistic Regression and RandomForest
 model_3 = Pipeline(steps=[
     ('preprocessor', preprocessor),
-    ('classifier', LogisticRegression())
+    ('classifier', RandomForestClassifier())
 ])
 
 # Train and evaluate model 3.0
@@ -152,7 +151,7 @@ param_grid = {
     'classifier__min_samples_leaf': [1, 2]
 }
 
-grid_search = GridSearchCV(model_2, param_grid, cv=5, scoring='roc_auc')
+grid_search = GridSearchCV(model_2, param_grid, cv=5, scoring='roc_auc', n_jobs=-1)
 grid_search.fit(X_train, y_train)
 best_model = grid_search.best_estimator_
 
@@ -168,3 +167,27 @@ tn, fp, fn, tp = cm.ravel()
 
 profit = (tp * net_gain_per_customer) - (fp * net_loss_per_customer)
 print(f'Optimized Model Profit: {profit}')
+
+# Function to plot ROC curves
+def plot_roc_curve(y_test, y_pred_proba, model_name):
+    fpr, tpr, _ = roc_curve(y_test, y_pred_proba)
+    roc_auc = auc(fpr, tpr)
+    plt.plot(fpr, tpr, lw=2, label=f'{model_name} (AUC = {roc_auc:.2f})')
+
+# Plot ROC curves for all models
+plt.figure(figsize=(10, 8))
+plot_roc_curve(y_test, baseline_model.predict_proba(X_test)[:, 1], 'Baseline Model')
+plot_roc_curve(y_test, model_1.predict_proba(X_test)[:, 1], 'Model 1.0')
+plot_roc_curve(y_test, model_2.predict_proba(X_test)[:, 1], 'Model 2.0')
+plot_roc_curve(y_test, model_3.predict_proba(X_test)[:, 1], 'Model 3.0')
+plot_roc_curve(y_test, best_model.predict_proba(X_test)[:, 1], 'Optimized Model')
+
+plt.plot([0, 1], [0, 1], color='navy', lw=2, linestyle='--')
+plt.xlim([0.0, 1.0])
+plt.ylim([0.0, 1.05])
+plt.xlabel('False Positive Rate')
+plt.ylabel('True Positive Rate')
+plt.title('ROC Curves for Different Models')
+plt.legend(loc="lower right")
+plt.show()
+
